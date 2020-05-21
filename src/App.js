@@ -1,50 +1,78 @@
-import React, { forwardRef, useRef, useState }from 'react';
-import { Button, Checkbox as Cb } from '@material-ui/core/';
+import React, { useEffect, useContext, useState }from 'react';
+import { Button, Checkbox } from '@material-ui/core';
 
 import audios from './audio';
 
-const CheckBox = forwardRef((_, audioRef) => {
-  const [checked, setChecked] = useState(true);
-  const onChange = () => {
-    if (checked) {
-      audioRef.current.volume = 0;
-      setChecked(false);
-    } else {
-      audioRef.current.volume = 1;
-      setChecked(true);
+const refs = {};
+const AudioContext = React.createContext();
+const useAudio = () => useContext(AudioContext);
+const AudioProvider = ({ children }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const value = {
+    isPlaying,
+    setIsPlaying,
+    refs,
+  };
+  Object.keys(audios).forEach((key) => {
+    if (!refs[key]) {
+      refs[key] = React.createRef();
     }
-  }
-  return <Cb checked={checked} onChange={onChange} />
-});
+  });
+  return (
+    <AudioContext.Provider value={value}>
+      {Object.keys(audios).map((key) => <audio key={key} ref={refs[key]} src={audios[key]}/>)}
+      {children}
+    </AudioContext.Provider>
+  );
+};
 
-const PlayButton = forwardRef((_, refs) => {
-  const [isPlaying, setisPlaying] = useState(false);
+const AudioVolume = ({ src }) => {
+  const { refs } = useAudio();
+  const audioRef = refs[src];
+  const volume = !!audioRef.current?.volume;
+  const [checked, setChecked] = useState(volume);
+  useEffect(() => setChecked(volume), [volume]);
+  const toggleVolume = () => {
+    audioRef.current.volume = checked ? 0 : 1;
+    setChecked(!checked);
+  };
+  return (
+    <Checkbox onChange={toggleVolume} checked={checked}/>
+  );
+};
+
+const PlayButton = () => {
+  const { isPlaying, refs, setIsPlaying } = useAudio();
+  const { piano: baseRef } = refs;
   const label = isPlaying ? 'Pause' : 'Play';
   const onClick = () => {
     if (isPlaying) {
-      refs.forEach((ref) => ref.current.pause());
+      Object.values(refs).forEach((ref) => {
+        ref.current.volume = 0;
+        ref.current.pause();
+      });
     } else {
-      refs.forEach((ref) => ref.current.play());
+      const { current: { currentTime } } = baseRef;
+      Object.values(refs).forEach((ref) => {
+        ref.current.volume = 1;
+        ref.current.currentTime = currentTime;
+        ref.current.play();
+      });
     }
-    setisPlaying(!isPlaying)
+    setIsPlaying(!isPlaying)
   };
 
   return <Button onClick={onClick} variant="contained">{label}</Button>;
-});
+};
 
-const App = () => {
-  const refs = [useRef(null), useRef(null), useRef(null), useRef(null)];
-  const baseRef = useRef(null);
-
-  return (
-    <>
-      <p>Test</p>
-      {Object.values(audios).map((audio, idx) => <audio key={audio} ref={refs[idx]} src={audio}/>)}
-      <audio ref={baseRef} src={audios.e} />
-      {refs.map((ref, idx) => <CheckBox key={idx} ref={ref}/>)}
-      <PlayButton ref={[...refs, baseRef]}/>
-    </>
-  );
-}
+const App = () => (
+  <AudioProvider>
+    <p>Test</p>
+    <AudioContext.Consumer>
+      {(value) => Object.keys(value.refs).slice(0, -1).map((key) => <AudioVolume key={key} src={key} />)}
+    </AudioContext.Consumer>
+    <PlayButton />
+  </AudioProvider>
+);
 
 export default App;
