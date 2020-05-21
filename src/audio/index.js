@@ -1,13 +1,13 @@
-import a from './1.ogg';
-import b from './2.ogg';
-import c from './3.ogg';
-import d from './4.ogg';
-import e from './5.ogg';
+import f1 from './f1.ogg';
+import f2 from './f2.ogg';
+import m1 from './m1.ogg';
+import m2 from './m2.ogg';
+import piano from './piano.ogg';
 
 export default {
-  a,
-  b,
-  c,
-  d,
-  e,
+  f1,
+  f2,
+  m1,
+  m2,
+  piano,
 };
