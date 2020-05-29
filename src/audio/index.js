@@ -9,5 +9,5 @@ export default {
   f2,
   m1,
   m2,
-  piano,
+  // piano,
 };
